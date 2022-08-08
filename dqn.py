@@ -2,6 +2,7 @@ import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from math import log2
 
 import numpy as np
 
@@ -10,8 +11,14 @@ class Conv2dDQN(nn.Module):
     def __init__(self, args):
         super(Conv2dDQN, self).__init__()
 
+        self.args = args
+
         # default runs
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=128, kernel_size=2, stride=1)
+        if args.state_representation == 'one-hot':
+            self.conv1 = nn.Conv2d(in_channels=int(log2(args.win_tile)) + 1, out_channels=128, kernel_size=2, stride=1)
+        else:
+            self.conv1 = nn.Conv2d(in_channels=1, out_channels=128, kernel_size=2, stride=1)
+
         self.conv2 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=2, stride=1)
 
         self.fc1 = nn.Linear(128 * 2 * 2, 256)
@@ -31,7 +38,9 @@ class Conv2dDQN(nn.Module):
         self.to(self.device)
 
     def forward(self, state):
-        x = F.relu(self.conv1(state.unsqueeze(1)))
+        if self.args.state_representation != 'one-hot':
+            state = state.unsqueeze(1)
+        x = F.relu(self.conv1(state))
         x = F.relu(self.conv2(x))
         # x = F.relu(self.conv3(x))
 
@@ -45,7 +54,10 @@ class LinearDQN(nn.Module):
     def __init__(self, args):
         super(LinearDQN, self).__init__()
 
-        self.fc1 = nn.Linear(np.prod(args.input_dims), 64)
+        input_size = np.prod(args.input_dims) * 11 if args.state_representation == 'one-hot' \
+            else np.prod(args.input_dims)
+
+        self.fc1 = nn.Linear(input_size, 64)
         self.bn1 = nn.BatchNorm1d(64)
 
         self.fc2 = nn.Linear(64, 64)

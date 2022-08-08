@@ -22,10 +22,16 @@ class Agent:
         memory = []
         if args.network_type == 'conv2d':
             network = Conv2dDQN
-            memory = np.zeros((self.mem_size, *args.input_dims), dtype=np.float32)
+            if args.state_representation == 'one-hot':
+                memory = np.zeros((self.mem_size, int(log2(args.win_tile)) + 1, *args.input_dims), dtype=np.float32)
+            else:
+                memory = np.zeros((self.mem_size, *args.input_dims), dtype=np.float32)
         elif args.network_type == 'linear':
             network = LinearDQN
-            memory = np.zeros((self.mem_size, np.prod(args.input_dims)), dtype=np.float32)
+            if args.state_representation == 'one-hot':
+                memory = np.zeros((self.mem_size, np.prod(args.input_dims) * 11), dtype=np.float32)
+            else:
+                memory = np.zeros((self.mem_size, np.prod(args.input_dims)), dtype=np.float32)
 
         self.Q_eval = network(args)
         self.Q_target = network(args)
@@ -126,8 +132,6 @@ class Agent:
             return
 
         for _ in range(learn_iterations):
-            self.Q_eval.optimizer.zero_grad()
-
             max_mem = min(self.mem_counter, self.mem_size)
 
             batch = np.random.choice(max_mem, self.batch_size, replace=False)
@@ -149,6 +153,8 @@ class Agent:
             q_next[lose_batch] = -100
 
             y = reward_batch + self.gamma*T.max(q_next, dim=1)[0]
+
+            self.Q_eval.optimizer.zero_grad()  # TODO: move to top if it breaks
 
             loss = self.Q_eval.loss(X, y).to(self.Q_eval.device)
             loss.backward()
