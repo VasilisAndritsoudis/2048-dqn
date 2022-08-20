@@ -1,11 +1,10 @@
-import numpy as np
 import os
-import torch as T
 from dqn import *
+from constants import args
 
 
 class Agent:
-    def __init__(self, args):
+    def __init__(self):
         self.gamma = args.gamma
         self.epsilon = args.epsilon
         self.eps_min = args.epsilon_min
@@ -29,12 +28,12 @@ class Agent:
         elif args.network_type == 'linear':
             network = LinearDQN
             if args.state_representation == 'one-hot':
-                memory = np.zeros((self.mem_size, np.prod(args.input_dims) * 11), dtype=np.float32)
+                memory = np.zeros((self.mem_size, np.prod(args.input_dims) * (int(log2(args.win_tile)) + 1)), dtype=np.float32)
             else:
                 memory = np.zeros((self.mem_size, np.prod(args.input_dims)), dtype=np.float32)
 
-        self.Q_eval = network(args)
-        self.Q_target = network(args)
+        self.Q_eval = network()
+        self.Q_target = network()
         self.Q_target.load_state_dict(self.Q_eval.state_dict())
 
         self.state_memory = memory.copy()
@@ -66,7 +65,6 @@ class Agent:
         print("=> saved checkpoint '{}' (epoch {})".format(filename, epoch))
 
     def load_state(self, filename):
-        # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
         episode = 0
         aggr_ep_scores = {'ep': [], 'avg': [], 'max': [], 'min': []}
         aggr_ep_moves = {'ep': [], 'avg': [], 'max': [], 'min': []}
@@ -94,10 +92,6 @@ class Agent:
         return episode, aggr_ep_scores, aggr_ep_moves
 
     def store_transition(self, state, action, reward, state_, terminal, win):
-        # print(f"state: {state}")
-        # print(f"state_: {state_}")
-        # print(f"reward: {reward}")
-
         index = self.mem_counter % self.mem_size
         self.state_memory[index] = state
         self.new_state_memory[index] = state_
@@ -154,7 +148,7 @@ class Agent:
 
             y = reward_batch + self.gamma*T.max(q_next, dim=1)[0]
 
-            self.Q_eval.optimizer.zero_grad()  # TODO: move to top if it breaks
+            self.Q_eval.optimizer.zero_grad()
 
             loss = self.Q_eval.loss(X, y).to(self.Q_eval.device)
             loss.backward()

@@ -1,9 +1,9 @@
 import os
-from math import log2
 from torch.utils.tensorboard import SummaryWriter
 
 from utils import *
 from agent import Agent
+from constants import args
 from environment import GameEngine
 
 
@@ -12,13 +12,8 @@ if __name__ == '__main__':
 
     env = GameEngine()
 
-    agent = Agent(args=args)
+    agent = Agent()
 
-    # writer.add_graph(agent.get_model())
-    # writer.close()
-    # sys.exit()
-
-    # For stats
     ep_scores = []
     ep_moves = []
     aggr_ep_scores = {'ep': [], 'avg': [], 'max': [], 'min': []}
@@ -27,6 +22,7 @@ if __name__ == '__main__':
     start_episode = 0
     max_tile = 0
     max_score = 0
+    wins = 0
     max_matrix = []
 
     if os.path.exists(args.filepath):
@@ -35,6 +31,7 @@ if __name__ == '__main__':
     for episode in range(start_episode, args.episodes):
         ep_score = 0
         ep_move = 0
+        win = False
 
         done = False
         prev_action = None
@@ -52,14 +49,9 @@ if __name__ == '__main__':
             ep_score += reward
             ep_move += 1
 
-            # agent_reward = env.reward(reward)
-            # agent_reward -= ep_move / MAX_EPISODE_MOVES
-            #
-            # agent_reward = agent_reward - 2 if not valid_move else agent_reward
-
             agent_reward = log2(reward) if reward > 0 else 0
             agent_reward -= tiles_moved
-            agent_reward = agent_reward - 20 if not valid_move else agent_reward
+            agent_reward = agent_reward - 50 if not valid_move else agent_reward
 
             if ep_move > args.max_episode_steps:
                 done = True
@@ -74,6 +66,9 @@ if __name__ == '__main__':
         agent.episode_done()
         agent.learn(args.learn_iterations)
 
+        if win:
+            wins += 1
+
         tile = np.max(observation)
         if tile > max_tile:
             max_tile = tile
@@ -84,7 +79,24 @@ if __name__ == '__main__':
 
         ep_scores.append(ep_score)
         ep_moves.append(ep_move)
-        if not episode % args.stats_every:
+
+        if not episode % args.stats_every and episode != 0:
+            aggr_ep_scores, avg_reward, min_reward, max_reward = update_aggregates(
+                aggr_ep_scores, ep_scores, episode, args.stats_every)
+            aggr_ep_moves, avg_moves, min_moves, max_moves = update_aggregates(
+                aggr_ep_moves, ep_moves, episode, args.stats_every)
+
+            print(f'Episode: {episode:>5d}, '
+                  f'average score: {avg_reward:>7.1f}, '
+                  f'epsilon: '
+                  f'{agent.epsilon:>1.2f}, '
+                  f'average moves: {avg_moves:>5.1f}, '
+                  f'max score: {max_score}, '
+                  f'max tile: {max_tile}, '
+                  f'win percentage: {wins / args.stats_every * 100}%, '
+                  f'max matrix: \n{np.matrix(max_matrix)}')
+
+        if not episode % args.save_every and episode != 0:
             aggr_ep_scores, avg_reward, min_reward, max_reward = update_aggregates(
                 aggr_ep_scores, ep_scores, episode, args.stats_every)
             aggr_ep_moves, avg_moves, min_moves, max_moves = update_aggregates(
@@ -104,17 +116,13 @@ if __name__ == '__main__':
 
             writer.add_scalar("Max Tile", max_tile, episode)
             writer.add_scalar("Epsilon", agent.epsilon, episode)
+            writer.add_scalar("Win Percentage", wins / args.stats_every, episode)
 
             writer.close()
 
-            print(f'Episode: {episode:>5d}, average score: {avg_reward:>7.1f}, current epsilon: '
-                  f'{agent.epsilon:>1.2f}, average moves: {avg_moves:>5.1f}, '
-                  f'current max score: {max_score}, current max tile: {max_tile}, '
-                  f'current max matrix: \n{np.matrix(max_matrix)}')
-
             max_tile = 0
             max_score = 0
+            wins = 0
 
-        if not episode % args.save_every and episode != 0:
             agent.save_state(args.filepath, episode, aggr_ep_scores, aggr_ep_moves)
             plot(aggr_ep_scores, aggr_ep_moves)

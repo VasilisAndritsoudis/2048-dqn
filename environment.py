@@ -5,6 +5,7 @@ from tkinter import Frame, Label, CENTER
 import logic
 import constants as c
 from agent import Agent
+from constants import args
 
 
 class GameEngine:
@@ -34,26 +35,21 @@ class GameEngine:
                 if logic.game_state(self.matrix) == 'win':
                     done = True
                     win = True
-                    print("You Win!")
                 if logic.game_state(self.matrix) == 'lose':
                     done = True
-                    # print("You Lose!")
             return self.matrix, score, done, win, move_complete, tiles_moved
 
     def reward(self, score):
-        reward = log2(score) if score > 0 else 0  # score reward
+        reward = log2(score) if score > 0 else 0
         temp_matrix = np.copy(self.matrix)
 
-        # reward += np.max(temp_matrix) / (2048 * 2)  # reward highest tile
-
-        # reward += (temp_matrix.size - np.count_nonzero(temp_matrix)) \
-        #     / (2 * INPUT_DIMS[0] * INPUT_DIMS[0])  # reward empty space
-
+        # TODO: Make penalty percentage based on final reward
         max_index = np.unravel_index(np.argmax(temp_matrix), temp_matrix.shape)
         reward -= np.min([
             fabs(max_index[0] - 0) + fabs(max_index[1] - 0),
         ]) / 6  # penalize distance from corner
 
+        # TODO: Make penalty percentage based on final reward
         dist = 0
         while np.any(temp_matrix):
             temp_matrix[max_index] = 0
@@ -66,7 +62,7 @@ class GameEngine:
 
 
 class GameRender(Frame):
-    def __init__(self, args):
+    def __init__(self):
         Frame.__init__(self)
 
         self.grid()
@@ -78,14 +74,23 @@ class GameRender(Frame):
             c.KEY_DOWN: logic.down,
             c.KEY_LEFT: logic.left,
             c.KEY_RIGHT: logic.right,
+
+            c.KEY_UP_ALT1: logic.up,
+            c.KEY_DOWN_ALT1: logic.down,
+            c.KEY_LEFT_ALT1: logic.left,
+            c.KEY_RIGHT_ALT1: logic.right,
+
+            c.KEY_UP_ALT2: logic.up,
+            c.KEY_DOWN_ALT2: logic.down,
+            c.KEY_LEFT_ALT2: logic.left,
+            c.KEY_RIGHT_ALT2: logic.right,
         }
 
         self.grid_cells = []
         self.init_grid()
         self.matrix = logic.new_game(c.GRID_LEN)
-        self.history_matrixs = []
+        self.history_matrices = []
         self.update_grid_cells()
-        self.args = args
 
         self.mainloop()
 
@@ -149,10 +154,10 @@ class GameRender(Frame):
     def key_down(self, event):
         key = event.keysym
 
-        if key == 'w':
-            agent = Agent(self.args)
+        if key == c.KEY_DQN:
+            agent = Agent()
 
-            agent.load_state(self.args.filepath)
+            agent.load_state(args.filepath)
 
             state, end, win = self.get_state()
 
@@ -175,23 +180,19 @@ class GameRender(Frame):
 
                 state, end, win = self.get_state()
         else:
-            # print(event)
             if key == c.KEY_QUIT:
                 exit()
-            if key == c.KEY_BACK and len(self.history_matrixs) > 1:
-                self.matrix = self.history_matrixs.pop()
+            if key == c.KEY_BACK and len(self.history_matrices) > 1:
+                self.matrix = self.history_matrices.pop()
                 self.update_grid_cells()
-                # print('back on step total step:', len(self.history_matrixs))
             elif key in self.commands:
                 self.matrix, done, score = self.commands[key](self.matrix)
-                # print(f"done: {done} score: {score}")
                 if done:
                     self.game_done()
 
     def game_done(self):
         self.matrix = logic.add_two(self.matrix)
-        # record last move
-        self.history_matrixs.append(self.matrix)
+        self.history_matrices.append(self.matrix)
         self.update_grid_cells()
         if logic.game_state(self.matrix) == 'win':
             self.grid_cells[1][1].configure(text="You", bg=c.BACKGROUND_COLOR_CELL_EMPTY)
