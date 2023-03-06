@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from math import log2
 
-from constants import args
+from config import args
 
 
 def transform_state(state):
@@ -29,26 +29,31 @@ def transform_state(state):
     return state
 
 
-def update_aggregates(aggr, ep_values, episode, update_every):
+def update_running_aggregates(aggr, ep_values, episode, update_every):
     avg = sum(ep_values[-update_every:]) / update_every
     min_val = min(ep_values[-update_every:])
     max_val = max(ep_values[-update_every:])
     aggr['ep'].append(episode)
     aggr['avg'].append(avg)
-    aggr['max'].append(max(ep_values[-update_every:]))
-    aggr['min'].append(min(ep_values[-update_every:]))
+    aggr['max'].append(max_val)
+    aggr['min'].append(min_val)
     return aggr, avg, min_val, max_val
 
 
-def plot(aggr_ep_scores, aggr_ep_moves):
-    plt.plot(aggr_ep_scores['ep'], aggr_ep_scores['avg'], label="average scores")
-    plt.plot(aggr_ep_scores['ep'], aggr_ep_scores['max'], label="max scores")
-    plt.plot(aggr_ep_scores['ep'], aggr_ep_scores['min'], label="min scores")
+def plot(aggr_scores, aggr_moves, aggr_wins):
+    plt.plot(aggr_scores['ep'], aggr_scores['avg'], label="average scores")
+    plt.plot(aggr_scores['ep'], aggr_scores['max'], label="max scores")
+    plt.plot(aggr_scores['ep'], aggr_scores['min'], label="min scores")
     plt.legend()
     plt.show()
 
-    plt.plot(aggr_ep_moves['ep'], aggr_ep_moves['avg'], label="average moves")
-    plt.plot(aggr_ep_moves['ep'], aggr_ep_moves['max'], label="max moves")
-    plt.plot(aggr_ep_moves['ep'], aggr_ep_moves['min'], label="min moves")
+    plt.plot(aggr_moves['ep'], aggr_moves['avg'], label="average moves")
+    plt.plot(aggr_moves['ep'], aggr_moves['max'], label="max moves")
+    plt.plot(aggr_moves['ep'], aggr_moves['min'], label="min moves")
+    plt.legend()
+    plt.show()
+
+    plt.plot(aggr_wins['ep'], aggr_wins['win-rate'], label="win rate")
+    plt.plot(aggr_wins['ep'], aggr_wins['max-win-rate'], label="max win rate")
     plt.legend()
     plt.show()

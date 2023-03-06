@@ -2,10 +2,12 @@ import numpy as np
 from math import fabs, log2
 from tkinter import Frame, Label, CENTER
 
+import time
+import utils
 import logic
-import constants as c
+import config as c
 from agent import Agent
-from constants import args
+from config import args
 
 
 class GameEngine:
@@ -36,27 +38,32 @@ class GameEngine:
                     done = True
                     win = True
                 if logic.game_state(self.matrix) == 'lose':
+                    if np.max(self.matrix) >= 2048:
+                        win = True
                     done = True
+
             return self.matrix, score, done, win, move_complete, tiles_moved
 
     def reward(self, score):
         reward = log2(score) if score > 0 else 0
         temp_matrix = np.copy(self.matrix)
 
-        # TODO: Make penalty percentage based on final reward
         max_index = np.unravel_index(np.argmax(temp_matrix), temp_matrix.shape)
-        reward -= np.min([
+        penalty = min(np.min([
             fabs(max_index[0] - 0) + fabs(max_index[1] - 0),
-        ]) / 6  # penalize distance from corner
+        ]) / 6, 1)  # Penalize distance from corner
 
-        # TODO: Make penalty percentage based on final reward
+        reward -= reward * penalty * args.penalty  # Penalty affects % of the reward
+
         dist = 0
         while np.any(temp_matrix):
             temp_matrix[max_index] = 0
             max_index_ = np.unravel_index(np.argmax(temp_matrix), temp_matrix.shape)
             dist += fabs(max_index[0] - max_index_[0]) + fabs(max_index[1] - max_index_[1])
             max_index = max_index_
-        reward -= dist / 96  # penalize distance to closest value
+        penalty = min(dist / 96, 1)  # Penalize distance to closest value
+
+        reward -= reward * penalty * args.penalty  # Penalty affects % of the reward
 
         return reward
 
@@ -91,6 +98,9 @@ class GameRender(Frame):
         self.matrix = logic.new_game(c.GRID_LEN)
         self.history_matrices = []
         self.update_grid_cells()
+
+        self.agent = Agent()
+        self.agent.load_complete_state(args.complete_filepath)
 
         self.mainloop()
 
@@ -149,22 +159,18 @@ class GameRender(Frame):
                         bg=c.BACKGROUND_COLOR_DICT[new_number],
                         fg=c.CELL_COLOR_DICT[new_number]
                     )
-        self.update_idletasks()
+        self.update()
 
     def key_down(self, event):
         key = event.keysym
 
         if key == c.KEY_DQN:
-            agent = Agent()
 
-            agent.load_state(args.filepath)
-
-            state, end, win = self.get_state()
+            observation, end, win = self.get_state()
 
             while not end:
-                action = agent.choose_action(state, 1, 1, False)
-
-                print(action)
+                state = utils.transform_state(np.array(observation))
+                action = self.agent.choose_complete_action(state)
 
                 if action == 0:
                     self.matrix, done, score, _ = logic.up(self.matrix)
@@ -176,9 +182,9 @@ class GameRender(Frame):
                     self.matrix, done, score, _ = logic.right(self.matrix)
 
                 if done:
-                    self.game_done()
+                    self.after(100, self.game_done())
 
-                state, end, win = self.get_state()
+                observation, end, win = self.get_state()
         else:
             if key == c.KEY_QUIT:
                 exit()
@@ -186,13 +192,12 @@ class GameRender(Frame):
                 self.matrix = self.history_matrices.pop()
                 self.update_grid_cells()
             elif key in self.commands:
-                self.matrix, done, score = self.commands[key](self.matrix)
+                self.matrix, done, score, _ = self.commands[key](self.matrix)
                 if done:
                     self.game_done()
 
     def game_done(self):
         self.matrix = logic.add_two(self.matrix)
-        self.history_matrices.append(self.matrix)
         self.update_grid_cells()
         if logic.game_state(self.matrix) == 'win':
             self.grid_cells[1][1].configure(text="You", bg=c.BACKGROUND_COLOR_CELL_EMPTY)

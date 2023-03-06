@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from math import log2
-from constants import args
+from config import args
 
 import numpy as np
 

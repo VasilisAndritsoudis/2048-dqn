@@ -1,6 +1,6 @@
 import os
 from dqn import *
-from constants import args
+from config import args
 
 
 class Agent:
@@ -46,7 +46,7 @@ class Agent:
     def get_model(self):
         return self.Q_eval
 
-    def save_state(self, filename, epoch, aggr_ep_scores, aggr_ep_moves):
+    def save_state(self, filename, epoch, aggr_scores, aggr_moves, aggr_wins, train_time):
         state = {'epoch': epoch + 1,
                  'model_state_dict': self.Q_eval.state_dict(),
                  'model_optimizer': self.Q_eval.optimizer.state_dict(),
@@ -58,21 +58,39 @@ class Agent:
                  'action_memory': self.action_memory,
                  'terminal_memory': self.terminal_memory,
                  'win_memory': self.win_memory,
-                 'aggr_ep_scores': aggr_ep_scores,
-                 'aggr_ep_moves': aggr_ep_moves
+                 'aggr_scores': aggr_scores,
+                 'aggr_moves': aggr_moves,
+                 'aggr_wins': aggr_wins,
+                 'train_time': train_time
                  }
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         T.save(state, filename)
         print("=> saved checkpoint '{}' (epoch {})".format(filename, epoch))
 
+    def save_complete_state(self, filename):
+        state = {
+                 'model_state_dict': self.Q_eval.state_dict(),
+                 'model_optimizer': self.Q_eval.optimizer.state_dict(),
+                 'target_state_dict': self.Q_target.state_dict(),
+                 'target_optimizer': self.Q_target.optimizer.state_dict(),
+                 }
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        T.save(state, filename)
+        print("=> saved checkpoint '{}' (complete)".format(filename))
+
     def load_state(self, filename):
         episode = 0
-        aggr_ep_scores = {'ep': [], 'avg': [], 'max': [], 'min': []}
-        aggr_ep_moves = {'ep': [], 'avg': [], 'max': [], 'min': []}
+        aggr_scores = {'ep': [], 'avg': [], 'max': [], 'min': []}
+        aggr_moves = {'ep': [], 'avg': [], 'max': [], 'min': []}
+        aggr_wins = {'ep': [], 'avg': [], 'max': [], 'min': []}
+        train_time = 0
         if os.path.isfile(filename):
             checkpoint = T.load(filename)
             episode = checkpoint['epoch']
-            aggr_ep_scores = checkpoint['aggr_ep_scores']
-            aggr_ep_moves = checkpoint['aggr_ep_moves']
+            aggr_scores = checkpoint['aggr_scores']
+            aggr_moves = checkpoint['aggr_moves']
+            aggr_wins = checkpoint['aggr_wins']
+            train_time = checkpoint['train_time']
             self.epsilon = self.epsilon - episode * self.eps_dec \
                 if self.epsilon - episode * self.eps_dec > self.eps_min else self.eps_min
             self.Q_eval.load_state_dict(checkpoint['model_state_dict'])
@@ -89,7 +107,18 @@ class Agent:
         else:
             print("=> no checkpoint found at '{}'".format(filename))
 
-        return episode, aggr_ep_scores, aggr_ep_moves
+        return episode, aggr_scores, aggr_moves, aggr_wins, train_time
+
+    def load_complete_state(self, filename):
+        if os.path.isfile(filename):
+            checkpoint = T.load(filename)
+            self.Q_eval.load_state_dict(checkpoint['model_state_dict'])
+            self.Q_eval.optimizer.load_state_dict(checkpoint['model_optimizer'])
+            self.Q_target.load_state_dict(checkpoint['target_state_dict'])
+            self.Q_target.optimizer.load_state_dict(checkpoint['target_optimizer'])
+            print("=> loaded checkpoint '{}' (complete)".format(filename,))
+        else:
+            print("=> no checkpoint found at '{}'".format(filename))
 
     def store_transition(self, state, action, reward, state_, terminal, win):
         index = self.mem_counter % self.mem_size
@@ -106,11 +135,11 @@ class Agent:
         self.target_counter += 1
         self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
 
-    def choose_action(self, observation, ep_moves, avg_moves, use_epsilon):
-        if use_epsilon:
-            epsilon = self.epsilon
-        else:
+    def choose_action(self, observation, ep_moves, avg_moves, custom_strategy):
+        if custom_strategy:
             epsilon = max(min(self.epsilon, ep_moves / avg_moves - 1), self.eps_min)
+        else:
+            epsilon = self.epsilon
 
         if np.random.random() > epsilon:
             state = T.tensor(np.array([observation])).type(T.FloatTensor).to(self.Q_eval.device)
@@ -118,6 +147,13 @@ class Agent:
             action = T.argmax(actions).item()
         else:
             action = np.random.choice(self.action_space)
+
+        return action
+
+    def choose_complete_action(self, observation):
+        state = T.tensor(np.array([observation])).type(T.FloatTensor).to(self.Q_eval.device)
+        actions = self.Q_eval.forward(state)
+        action = T.argmax(actions).item()
 
         return action
 
@@ -143,8 +179,8 @@ class Agent:
             X = self.Q_eval.forward(state_batch)[batch_index, action_batch]
             q_next = self.Q_target.forward(new_state_batch)
 
-            q_next[win_batch] = T.max(q_next).item() + 100
-            q_next[lose_batch] = -100
+            q_next[win_batch] = T.max(q_next).item() + 50
+            q_next[lose_batch] = -50
 
             y = reward_batch + self.gamma*T.max(q_next, dim=1)[0]
 

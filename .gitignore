@@ -129,10 +129,12 @@ dmypy.json
 .pyre/
 
 Scripts/
-img/
 share/
 
-states/
+states/*
+!states/best/
 runs/
 
 .idea/
+
+pyvenv.cfg
