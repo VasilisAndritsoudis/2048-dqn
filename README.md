@@ -206,7 +206,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 ## Contact <a id="contact"></a>
 
 [![GitHub Profile][github-shield]][github-url]
-## [![Twitter Profile][twitter-shield]][twitter-url]
+<!-- [![Twitter Profile][twitter-shield]][twitter-url] -->
 [![LinkedIn Profile][linkedin-shield]][linkedin-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
