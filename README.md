@@ -41,7 +41,7 @@
       </ul>
     </li>
     <li><a href="#demo">Demo</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#future_work">Future Work</a></li>
     <!-- <li><a href="#contributing">Contributing</a></li> -->
     <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
@@ -165,7 +165,7 @@ the best model reaches ~15% win rate.
 
 
 <!-- ROADMAP -->
-## Future Ideas <a id="roadmap"></a>
+## Future Work <a id="future_work"></a>
 
 * [ ] Train and test games further than tile 2048
 * [ ] Implement move suggestions based on the agent predictions
@@ -206,7 +206,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 ## Contact <a id="contact"></a>
 
 [![GitHub Profile][github-shield]][github-url]
-[![Twitter Profile][twitter-shield]][twitter-url]
+## [![Twitter Profile][twitter-shield]][twitter-url]
 [![LinkedIn Profile][linkedin-shield]][linkedin-url]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
