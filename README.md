@@ -27,6 +27,7 @@
 <details>
   <summary>Table of Contents</summary>
   <ol>
+    <li><a href="#demo">Demo</a></li>
     <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
@@ -40,13 +41,25 @@
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
-    <li><a href="#demo">Demo</a></li>
     <li><a href="#future_work">Future Work</a></li>
     <!-- <li><a href="#contributing">Contributing</a></li> -->
     <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
+
+
+<!-- DEMO EXAMPLES -->
+## Demo <a id="demo"></a>
+
+<div align="center">
+  <a href="https://github.com/VasilisAndritsoudis/2048-dqn">
+    <img src="img/game_animation.gif" alt="Logo">
+  </a>
+</div>
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project <a id="about-the-project"></a>
@@ -147,21 +160,6 @@ To get a local copy up and running follow these simple instruction steps.
    To activate the agent press `W`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-<!-- DEMO EXAMPLES -->
-## Demo <a id="demo"></a>
-Using the configuration of the best model, a real-time run of the game is shown below. Keep in mind
-the best model reaches ~15% win rate.
-
-<div align="center">
-  <a href="https://github.com/VasilisAndritsoudis/2048-dqn">
-    <img src="img/game_animation.gif" alt="Logo">
-  </a>
-</div>
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 
 
 <!-- ROADMAP -->
