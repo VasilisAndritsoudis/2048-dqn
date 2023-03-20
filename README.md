@@ -9,7 +9,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/VasilisAndritsoudis/2048-dqn">
-    <img src="img/dqn_2048.png" alt="Logo" width="750" height="150">
+    <img src="img/2048_dqn.png" alt="Logo" width="750" height="150">
   </a>
 
 <h3 align="center">2048 Deep Q-Learning Network Agent</h3>
